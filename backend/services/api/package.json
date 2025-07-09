@@ -1,0 +1,19 @@
+{
+	"name": "pocket-pod-api",
+	"version": "0.1.0",
+	"type": "module",
+	"main": "dist/index.js",
+	"scripts": {
+		"build": "tsc -p tsconfig.json",
+		"start": "node dist/index.js",
+		"dev": "ts-node-dev --respawn --transpile-only src/index.ts"
+	},
+	"dependencies": {
+		"express": "^5.1.0"
+	},
+	"devDependencies": {
+		"typescript": "~5.8.3",
+		"@types/express": "^5.0.3",
+		"ts-node-dev": "^2.0.0"
+	}
+}
