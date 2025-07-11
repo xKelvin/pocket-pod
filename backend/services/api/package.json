@@ -9,7 +9,11 @@
 		"dev": "ts-node-dev --respawn --transpile-only src/index.ts"
 	},
 	"dependencies": {
-		"express": "^5.1.0"
+		"express": "^5.1.0",
+		"zod": "^4.0.5",
+		"@aws-sdk/client-dynamodb": "^3.540.0",
+		"@aws-sdk/lib-dynamodb": "^3.540.0",
+		"uuid": "^11.1.0"
 	},
 	"devDependencies": {
 		"typescript": "~5.8.3",
