@@ -5,7 +5,7 @@ import { DeleteCommand, DynamoDBDocumentClient, PutCommand, QueryCommand } from 
 import { v4 as uuidv4 } from 'uuid';
 
 const DYNAMODB_TABLE = process.env.DYNAMODB_TABLE || 'pocket-pod-jobs';
-const ddbDocClient = DynamoDBDocumentClient.from(new DynamoDBClient({ region: 'ap-northeast-1' }));
+const docClient = DynamoDBDocumentClient.from(new DynamoDBClient({ region: 'ap-northeast-1' }));
 
 export const getJobs = async (_req: Request, res: Response) => {
 	// Retrieve all jobs from the DynamoDB table, where the partition key is the user id
@@ -17,7 +17,7 @@ export const getJobs = async (_req: Request, res: Response) => {
 		},
 	});
 
-	const result = await ddbDocClient.send(command);
+	const result = await docClient.send(command);
 	const jobs = jobsSchema.parse(result.Items);
 
 	res.json(jobs);
@@ -44,7 +44,7 @@ export const createJob = async (req: Request, res: Response, next: NextFunction)
 			},
 		});
 
-		await ddbDocClient.send(command);
+		await docClient.send(command);
 
 		res.status(201).json({ jobId });
 	} catch (error) {
@@ -63,11 +63,17 @@ export const deleteJob = async (req: Request, res: Response, next: NextFunction)
 				userId: '123',
 				jobId: id,
 			},
+			ReturnValues: 'ALL_OLD',
 		});
 
-		const result = await ddbDocClient.send(command);
+		const result = await docClient.send(command);
 
-		res.json({ message: 'Job deleted', result });
+		if (!result.Attributes) {
+			res.status(404).json({ message: 'Job not found' });
+			return;
+		}
+
+		res.json({ message: 'Job deleted', deleted: result.Attributes });
 	} catch (error) {
 		next(error);
 	}
