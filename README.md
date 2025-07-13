@@ -12,6 +12,17 @@ This portfolio project exists first and foremost as a **learning playground**.  
 *  **Redis Streams** – lightweight, high-throughput job queuing
 *  **npm workspaces** – monorepo-friendly dependency management across services
 
+## User Flow
+```mermaid
+flowchart TD
+    A(["User signs in with GitHub"]) --> B["User submits article URL"]
+    B --> C["Scrape article content"]
+    C --> D["Generate 1–2 minute podcast"]
+    D --> E{"Podcast ready"}
+    E --> F["Listen to podcast (in-app)"]
+    E --> G["Download podcast file"]
+```
+
 ## Architectural Overview
 
 ![Pocket Pod architecture](backend/docs/infra.png)
