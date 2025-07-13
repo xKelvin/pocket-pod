@@ -9,7 +9,6 @@
 This portfolio project exists first and foremost as a **learning playground**.  The focus areas are:
 
 *  **AWS ECS Fargate** – container-native deployments without managing servers
-*  **Infrastructure-as-Code (AWS CDK)** – repeatable, version-controlled infrastructure
 *  **Redis Streams** – lightweight, high-throughput job queuing
 *  **npm workspaces** – monorepo-friendly dependency management across services
 
