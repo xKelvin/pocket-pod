@@ -3,6 +3,7 @@ import { jobsSchema, podcastSchema, Job } from './validation/index.js';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DeleteCommand, DynamoDBDocumentClient, PutCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { v4 as uuidv4 } from 'uuid';
+import redisClient from '../lib/client.redis.js';
 
 const DYNAMODB_TABLE = process.env.DYNAMODB_TABLE || 'pocket-pod-jobs';
 const docClient = DynamoDBDocumentClient.from(new DynamoDBClient({ region: 'ap-northeast-1' }));
@@ -45,6 +46,13 @@ export const createJob = async (req: Request, res: Response, next: NextFunction)
 		});
 
 		await docClient.send(command);
+
+		// TODO: Create a proper job event type.
+		await redisClient.xAdd('podcast:jobs', '*', {
+			jobId,
+			userId: '123',
+			url,
+		});
 
 		res.status(201).json({ jobId });
 	} catch (error) {

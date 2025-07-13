@@ -2,6 +2,12 @@ import { createClient } from 'redis';
 
 const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 
+type JobEvent = {
+	jobId: string;
+	userId: string;
+	url: string;
+};
+
 class PodcastWorker {
 	private redisClient: ReturnType<typeof createClient>;
 
@@ -26,25 +32,38 @@ class PodcastWorker {
 	private async processJobs() {
 		console.log('🔄 Worker started, listening for jobs...');
 
-		while (true) {
-			try {
-				// This is a placeholder for job processing logic
-				// In a real implementation, we'd use Redis Streams to pull jobs
-				const job = await this.redisClient.brPop('podcast-jobs', 5);
+		await this.redisClient.xGroupCreate('podcast:jobs', 'workers', '0', { MKSTREAM: true })
+			.catch(err => { if (!err.message.includes('BUSYGROUP')) throw err; });
 
-				if (job) {
-					console.log('📝 Processing job:', job);
-					await this.processJob(JSON.parse(job.element));
+		while (true) {
+			const resp = await this.redisClient.xReadGroup(
+				'workers',
+				process.env.HOSTNAME!,
+				// Deliver all messages from the stream with key 'podcast:jobs'
+				// that are not yet delivered to any consumer,
+				// and wait for up to 5 seconds for a message to be available
+				{ key: 'podcast:jobs', id: '>' },
+				{ COUNT: 1, BLOCK: 5000 }
+			);
+
+			if (!resp) continue;
+
+			const messages = resp[0].messages;
+			for (const m of messages) {
+				const fields = m.message;
+				try {
+					await this.processJob(fields as JobEvent);
+					await this.redisClient.xAck('podcast:jobs', 'workers', m.id);
+					await this.redisClient.xDel('podcast:jobs', m.id);
+				} catch (err) {
+					console.error('Job failed', m.id, err);
 				}
-			} catch (error) {
-				console.error('❌ Error processing job:', error);
-				await new Promise(resolve => setTimeout(resolve, 1000));
 			}
 		}
 	}
 
-	private async processJob(job: any) {
-		console.log('🎵 Processing podcast job:', job.id);
+	private async processJob(job: JobEvent) {
+		console.log('🎵 Processing podcast job:', job.jobId);
 
 		// TODO: Implement the actual job processing:
 		// 1. Fetch and clean HTML (Readability)
@@ -57,7 +76,7 @@ class PodcastWorker {
 		// Simulate work
 		await new Promise(resolve => setTimeout(resolve, 2000));
 
-		console.log('✅ Job completed:', job.id);
+		console.log('✅ Job completed:', job.jobId);
 	}
 }
 

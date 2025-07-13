@@ -90,7 +90,9 @@ export class WorkerServiceStack extends Stack {
 		new FargateService(this, 'WorkerService', {
 			cluster: cluster,
 			taskDefinition: workerTaskDefinition,
-			desiredCount: 0, // Scale to 0 initially, will scale up based on queue
+			// Scale to 1 initially, will scale up based on custom metrics.
+			// https://aws.amazon.com/jp/blogs/containers/autoscaling-amazon-ecs-services-based-on-custom-metrics-with-application-auto-scaling/
+			desiredCount: 1,
 			assignPublicIp: false,
 			vpcSubnets: {
 				subnetType: SubnetType.PRIVATE_WITH_EGRESS,

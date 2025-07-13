@@ -74,33 +74,6 @@ This backend implements a **containerized microservices architecture** using AWS
 # Install dependencies
 npm install
 
-# Build all services
-./scripts/dev.sh build
-
-# Run API service locally
-./scripts/dev.sh dev api
-
-# Build Docker images
-./scripts/dev.sh docker:build
-
-# Run API container
-./scripts/dev.sh docker:run api 3000
-```
-
-### Available Scripts
-
-```bash
-# Development
-./scripts/dev.sh build [service]          # Build TypeScript
-./scripts/dev.sh dev <service>            # Run in dev mode
-./scripts/dev.sh docker:build [service]   # Build Docker images
-./scripts/dev.sh docker:run <service>     # Run Docker container
-
-# Infrastructure
-./scripts/dev.sh cdk:synth               # Generate CloudFormation
-./scripts/dev.sh cdk:deploy              # Deploy to AWS
-```
-
 ## Project Structure
 
 ```

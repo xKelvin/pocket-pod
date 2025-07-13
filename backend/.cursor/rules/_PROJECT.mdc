@@ -58,5 +58,4 @@ Dockerfiles install *all* deps, run `npm run build`, then prune dev-deps for a s
 1. Keep service isolation – never import from `services/api` inside `services/worker` (and vice-versa).
 2. Add new services **inside `services/`** as npm workspaces with their own `tsconfig.json` & Dockerfile.
 3. Update CDK stack to wire resources (port mappings, env vars, IAM) when new services/assets are introduced.
-4. Maintain the existing build script (`scripts/dev.sh`) when extending functionality.
 
