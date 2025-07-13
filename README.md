@@ -14,7 +14,7 @@ This portfolio project exists first and foremost as a **learning playground**.  
 
 ## Architectural Overview
 
-![Pocket Pod architecture](docs/infra.png)
+![Pocket Pod architecture](backend/docs/infra.png)
 
 The diagram shows the complete end-to-end flow from an authenticated request, to job queuing, worker processing with AWS Polly, and final asset storage in S3.
 
