@@ -44,4 +44,4 @@ The diagram shows the complete end-to-end flow from an authenticated request, to
 
 ---
 
-*Stay tuned – this README will evolve alongside the project!*
+*This README will evolve alongside the project*
