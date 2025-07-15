@@ -1,6 +1,10 @@
 import { createClient } from 'redis';
+import { DynamoDBDocumentClient, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 
 const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
+const DYNAMODB_TABLE = process.env.DYNAMODB_TABLE || 'pocket-pod-jobs';
+const docClient = DynamoDBDocumentClient.from(new DynamoDBClient({ region: 'ap-northeast-1' }));
 
 type JobEvent = {
 	jobId: string;
@@ -65,6 +69,7 @@ class PodcastWorker {
 	private async processJob(job: JobEvent) {
 		console.log('🎵 Processing podcast job:', job.jobId);
 
+		await docClient.send(createUpdateCommand(job.jobId, 'processing'));
 		// TODO: Implement the actual job processing:
 		// 1. Fetch and clean HTML (Readability)
 		// 2. Chunk text for TTS
@@ -74,11 +79,28 @@ class PodcastWorker {
 		// 6. Update job status in DynamoDB
 
 		// Simulate work
-		await new Promise(resolve => setTimeout(resolve, 2000));
+		await new Promise(resolve => setTimeout(resolve, 10000));
+		await docClient.send(createUpdateCommand(job.jobId, 'completed'));
 
 		console.log('✅ Job completed:', job.jobId);
 	}
 }
 
 const worker = new PodcastWorker();
-worker.start().catch(console.error); 
+worker.start().catch(console.error);
+
+const createUpdateCommand = (jobId: string, status: string) => {
+	return new UpdateCommand({
+		TableName: DYNAMODB_TABLE,
+		Key: {
+			jobId,
+		},
+		UpdateExpression: 'SET #status = :status',
+		ExpressionAttributeNames: {
+			'#status': 'status',
+		},
+		ExpressionAttributeValues: {
+			':status': status,
+		},
+	});
+};
