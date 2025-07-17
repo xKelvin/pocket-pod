@@ -67,9 +67,14 @@ class PodcastWorker {
 	}
 
 	private async processJob(job: JobEvent) {
-		console.log('🎵 Processing podcast job:', job.jobId);
+		console.log('🎵 Processing podcast job:', job);
 
-		await docClient.send(createUpdateCommand(job.jobId, 'processing'));
+		// Guard against malformed messages – both keys are required by DynamoDB
+		if (!job.userId || !job.jobId) {
+			throw new Error(`Malformed job event – missing userId or jobId: ${JSON.stringify(job)}`);
+		}
+
+		await docClient.send(createUpdateCommand(job.userId, job.jobId, 'processing'));
 		// TODO: Implement the actual job processing:
 		// 1. Fetch and clean HTML (Readability)
 		// 2. Chunk text for TTS
@@ -80,7 +85,7 @@ class PodcastWorker {
 
 		// Simulate work
 		await new Promise(resolve => setTimeout(resolve, 10000));
-		await docClient.send(createUpdateCommand(job.jobId, 'completed'));
+		await docClient.send(createUpdateCommand(job.userId, job.jobId, 'completed'));
 
 		console.log('✅ Job completed:', job.jobId);
 	}
@@ -89,10 +94,11 @@ class PodcastWorker {
 const worker = new PodcastWorker();
 worker.start().catch(console.error);
 
-const createUpdateCommand = (jobId: string, status: string) => {
+const createUpdateCommand = (userId: string, jobId: string, status: string) => {
 	return new UpdateCommand({
 		TableName: DYNAMODB_TABLE,
 		Key: {
+			userId,
 			jobId,
 		},
 		UpdateExpression: 'SET #status = :status',
