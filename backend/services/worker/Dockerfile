@@ -1,8 +1,7 @@
 FROM public.ecr.aws/docker/library/node:20-slim
 
-# Install ffmpeg, Chromium (ARM64) and required libraries
+# Install Chromium (ARM64) and required libraries
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ffmpeg \
     chromium \
     fonts-liberation \
     libatk-bridge2.0-0 libatk1.0-0 libgbm1 libgtk-3-0 \
