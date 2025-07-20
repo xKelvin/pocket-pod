@@ -50,7 +50,11 @@ export class WorkerServiceStack extends Stack {
 		// Grant Polly permissions for TTS
 		workerTaskRole.addToPrincipalPolicy(
 			new PolicyStatement({
-				actions: ['polly:SynthesizeSpeech'],
+				actions: [
+					'polly:StartSpeechSynthesisTask',
+					'polly:GetSpeechSynthesisTask',
+					'polly:ListSpeechSynthesisTasks'
+				],
 				resources: ['*'],
 			})
 		);

@@ -1,18 +1,15 @@
 import { createClient } from 'redis';
-import { Engine, LanguageCode, OutputFormat, PollyClient, SynthesizeSpeechCommand, SynthesizeSpeechCommandInput, VoiceId } from '@aws-sdk/client-polly';
+import { Engine, LanguageCode, OutputFormat, PollyClient, StartSpeechSynthesisTaskCommand, StartSpeechSynthesisTaskCommandInput, VoiceId } from '@aws-sdk/client-polly';
 import { DynamoDBDocumentClient, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import puppeteer from 'puppeteer';
 import { Readability } from '@mozilla/readability';
 import { JSDOM } from 'jsdom';
-import { S3Client } from '@aws-sdk/client-s3';
-import { Upload } from '@aws-sdk/lib-storage';
 
 const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 const DYNAMODB_TABLE = process.env.DYNAMODB_TABLE || 'pocket-pod-jobs';
 const docClient = DynamoDBDocumentClient.from(new DynamoDBClient({ region: 'ap-northeast-1' }));
 const pollyClient = new PollyClient({ region: 'ap-northeast-1' });
-const s3Client = new S3Client({ region: 'ap-northeast-1' });
 
 type JobEvent = {
 	jobId: string;
@@ -122,41 +119,24 @@ class PodcastWorker {
 		}
 
 		// 2. Chunk text for TTS
-		// const chunks = [
-		// 	title,
-		// 	...content.split('\n').map(line => line.trim()).filter(line => line.length > 0),
-		// ].filter(chunk => chunk !== undefined);
+		const chunks = [
+			title,
+			...content.split('\n').map(line => line.trim()).filter(line => line.length > 0),
+		].filter(chunk => chunk !== undefined);
 
 		// 3. Generate audio with AWS Polly
-
-
-		const params: SynthesizeSpeechCommandInput = {
-			Text: title,
+		const params: StartSpeechSynthesisTaskCommandInput = {
+			Text: chunks.join('\n'),
 			OutputFormat: OutputFormat.MP3,
 			VoiceId: VoiceId.Ruth,
 			Engine: Engine.NEURAL,
 			LanguageCode: LanguageCode.en_US,
+			OutputS3BucketName: process.env.S3_BUCKET!,
+			OutputS3KeyPrefix: `${job.userId}/${job.jobId}.mp3`,
 		};
 
-		const command = new SynthesizeSpeechCommand(params);
-		const response = await pollyClient.send(command);
-		console.log('🔍 Sending Polly command');
-
-		if (!response.AudioStream) {
-			throw new Error('Missing stream');
-		}
-
-		const upload = new Upload({
-			client: s3Client,
-			params: {
-				Bucket: process.env.S3_BUCKET!,
-				Key: `${job.userId}/${job.jobId}.mp3`,
-				Body: response.AudioStream,
-				ContentType: 'audio/mpeg',
-			},
-		});
-
-		await upload.done();
+		console.log('🔍 Sending Polly command', params);
+		await pollyClient.send(new StartSpeechSynthesisTaskCommand(params));
 
 		// 6. Update job status in DynamoDB
 		await docClient.send(createUpdateCommand(job.userId, job.jobId, 'completed'));
