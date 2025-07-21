@@ -23,7 +23,7 @@ export class StorageStack extends Stack {
 		this.podcastsTable = new Table(this, 'PodcastsTable', {
 			tableName: 'pocket-pod-podcasts',
 			partitionKey: { name: 'userId', type: AttributeType.STRING },
-			sortKey: { name: 'podcastId', type: AttributeType.STRING },
+			sortKey: { name: 'id', type: AttributeType.STRING },
 			billingMode: BillingMode.PAY_PER_REQUEST,
 			removalPolicy: RemovalPolicy.DESTROY, // For development only
 		});

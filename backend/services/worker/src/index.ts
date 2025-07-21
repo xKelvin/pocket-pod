@@ -13,7 +13,7 @@ const pollyClient = new PollyClient({ region: 'ap-northeast-1' });
 const REDIS_STREAM_KEY = 'podcast:jobs';
 
 type PodcastEvent = {
-	podcastId: string;
+	id: string;
 	userId: string;
 	url: string;
 };
@@ -88,11 +88,11 @@ class PodcastWorker {
 
 	private async processPodcast(podcast: PodcastEvent) {
 		// Guard against malformed messages – both keys are required by DynamoDB
-		if (!podcast.userId || !podcast.podcastId) {
-			throw new Error(`Malformed podcast event – missing userId or podcastId: ${JSON.stringify(podcast)}`);
+		if (!podcast.userId || !podcast.id) {
+			throw new Error(`Malformed podcast event – missing userId or id: ${JSON.stringify(podcast)}`);
 		}
 
-		await docClient.send(createUpdateCommand(podcast.userId, podcast.podcastId, 'processing', 'processing'));
+		await docClient.send(createUpdateCommand(podcast.userId, podcast.id, 'processing', 'processing', ''));
 
 		if (!this.browser) {
 			throw new Error('Browser not initialized');
@@ -129,14 +129,19 @@ class PodcastWorker {
 			Engine: Engine.NEURAL,
 			LanguageCode: LanguageCode.en_US,
 			OutputS3BucketName: process.env.S3_BUCKET!,
-			OutputS3KeyPrefix: `${podcast.userId}`,
+			OutputS3KeyPrefix: `${podcast.userId}/`,
 		};
 
-		await pollyClient.send(new StartSpeechSynthesisTaskCommand(params));
+		const result = await pollyClient.send(new StartSpeechSynthesisTaskCommand(params));
+		const outputUri = result.SynthesisTask?.OutputUri;
+
+		if (!outputUri) {
+			throw new Error('Could not generate audio.');
+		}
 
 		// Update podcast status in DynamoDB
-		await docClient.send(createUpdateCommand(podcast.userId, podcast.podcastId, 'completed', title));
-		console.log('Podcast completed:', podcast.podcastId);
+		await docClient.send(createUpdateCommand(podcast.userId, podcast.id, 'completed', title, outputUri));
+		console.log('Podcast completed:', podcast.id);
 	}
 
 	/** Gracefully close shared resources when the process exits */
@@ -158,21 +163,23 @@ worker.start().catch(console.error);
 process.on('SIGTERM', () => worker.shutdown().finally(() => process.exit(0)));
 process.on('SIGINT', () => worker.shutdown().finally(() => process.exit(0)));
 
-const createUpdateCommand = (userId: string, podcastId: string, status: string, title: string) => {
+const createUpdateCommand = (userId: string, id: string, status: string, title: string, audioUri: string) => {
 	return new UpdateCommand({
 		TableName: DYNAMODB_TABLE,
 		Key: {
 			userId,
-			podcastId,
+			id,
 		},
-		UpdateExpression: 'SET #status = :status, #title = :title',
+		UpdateExpression: 'SET #status = :status, #title = :title, #audioUri = :audioUri',
 		ExpressionAttributeNames: {
 			'#status': 'status',
 			'#title': 'title',
+			'#audioUri': 'audioUri',
 		},
 		ExpressionAttributeValues: {
 			':status': status,
 			':title': title,
+			':audioUri': audioUri,
 		},
 	});
 };
