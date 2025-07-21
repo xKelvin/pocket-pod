@@ -6,7 +6,7 @@ export const podcastSchema = z.object({
 	title: z.string().default('pending...').optional(),
 	url: z.string(),
 	status: z.enum(podcastStatus).default('pending').optional(),
-	createdAt: z.string().default(new Date().toISOString()).optional(),
+	createdAt: z.string().optional(),
 });
 
 export const podcastsSchema = z.array(podcastSchema);

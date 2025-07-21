@@ -52,6 +52,7 @@ new ApiServiceStack(app, {
 	taskExecutionRole: clusterStack.taskExecutionRole,
 	apiTargetGroup: lbStack.apiTargetGroup,
 	apiLogGroup: clusterStack.apiLogGroup,
+	s3Bucket: storageStack.podcastsBucket,
 });
 
 // (depends on network, storage, cache, and cluster)

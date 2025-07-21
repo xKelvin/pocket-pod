@@ -133,14 +133,14 @@ class PodcastWorker {
 		};
 
 		const result = await pollyClient.send(new StartSpeechSynthesisTaskCommand(params));
-		const outputUri = result.SynthesisTask?.OutputUri;
+		const audioKey = `${podcast.userId}/.${result.SynthesisTask?.TaskId}.mp3`;
 
-		if (!outputUri) {
+		if (!audioKey) {
 			throw new Error('Could not generate audio.');
 		}
 
 		// Update podcast status in DynamoDB
-		await docClient.send(createUpdateCommand(podcast.userId, podcast.id, 'completed', title, outputUri));
+		await docClient.send(createUpdateCommand(podcast.userId, podcast.id, 'completed', title, audioKey));
 		console.log('Podcast completed:', podcast.id);
 	}
 
@@ -163,23 +163,23 @@ worker.start().catch(console.error);
 process.on('SIGTERM', () => worker.shutdown().finally(() => process.exit(0)));
 process.on('SIGINT', () => worker.shutdown().finally(() => process.exit(0)));
 
-const createUpdateCommand = (userId: string, id: string, status: string, title: string, audioUri: string) => {
+const createUpdateCommand = (userId: string, id: string, status: string, title: string, audioKey: string) => {
 	return new UpdateCommand({
 		TableName: DYNAMODB_TABLE,
 		Key: {
 			userId,
 			id,
 		},
-		UpdateExpression: 'SET #status = :status, #title = :title, #audioUri = :audioUri',
+		UpdateExpression: 'SET #status = :status, #title = :title, #audioKey = :audioKey',
 		ExpressionAttributeNames: {
 			'#status': 'status',
 			'#title': 'title',
-			'#audioUri': 'audioUri',
+			'#audioKey': 'audioKey',
 		},
 		ExpressionAttributeValues: {
 			':status': status,
 			':title': title,
-			':audioUri': audioUri,
+			':audioKey': audioKey,
 		},
 	});
 };

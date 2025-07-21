@@ -6,6 +6,7 @@ import { formatDate } from '@/utils/formatDate';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import PodcastDeleteButton from '../PodcastDeleteButton';
+import PodcastPlayButton from '../PodcastPlayButton';
 
 export const podcastsColumns: (onDelete: (podcast: Podcast) => void) => ColumnDef<Podcast>[] = (
   onDelete: (podcast: Podcast) => void
@@ -101,6 +102,7 @@ export const podcastsColumns: (onDelete: (podcast: Podcast) => void) => ColumnDe
         return (
           <div className="flex items-center gap-1 justify-end">
             <PodcastDeleteButton onClick={() => onDelete(podcast)} />
+            <PodcastPlayButton podcastId={podcast.id} />
           </div>
         );
       },

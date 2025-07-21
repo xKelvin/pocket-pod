@@ -16,6 +16,7 @@ import {
 	IApplicationTargetGroup,
 } from 'aws-cdk-lib/aws-elasticloadbalancingv2';
 import { IRole, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
+import { IBucket } from 'aws-cdk-lib/aws-s3';
 import { ILogGroup } from 'aws-cdk-lib/aws-logs';
 import { Construct } from 'constructs';
 
@@ -26,13 +27,14 @@ export interface ApiServiceStackProps extends StackProps {
 	taskExecutionRole: IRole;
 	apiTargetGroup: IApplicationTargetGroup;
 	apiLogGroup: ILogGroup;
+	s3Bucket: IBucket;
 }
 
 export class ApiServiceStack extends Stack {
 	constructor(scope: Construct, props: ApiServiceStackProps) {
 		super(scope, 'ApiServiceStack', props);
 
-		const { cluster, podcastsTable, redisCluster, taskExecutionRole, apiTargetGroup, apiLogGroup } = props;
+		const { cluster, podcastsTable, redisCluster, taskExecutionRole, apiTargetGroup, apiLogGroup, s3Bucket } = props;
 
 		// Create task role for API service
 		const apiTaskRole = new Role(this, 'ApiTaskRole', {
@@ -41,6 +43,7 @@ export class ApiServiceStack extends Stack {
 
 		// Grant API service permissions to DynamoDB
 		podcastsTable.grantReadWriteData(apiTaskRole);
+		s3Bucket.grantReadWrite(apiTaskRole);
 
 		// Create API task definition
 		const apiTaskDefinition = new FargateTaskDefinition(this, 'ApiTaskDefinition', {
@@ -68,6 +71,7 @@ export class ApiServiceStack extends Stack {
 				NODE_ENV: 'production',
 				PORT: '3000',
 				DYNAMODB_TABLE: podcastsTable.tableName,
+				S3_BUCKET: s3Bucket.bucketName,
 				REDIS_URL: `redis://${redisCluster.attrPrimaryEndPointAddress}:6379`,
 			},
 		});

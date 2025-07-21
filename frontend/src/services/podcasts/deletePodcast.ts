@@ -2,7 +2,7 @@
 import { Podcast } from '@/types/podcasts';
 
 /**
- * Create podcast - POST /podcasts
+ * Delete podcast - DELETE /podcasts/:id
  */
 export const deletePodcastApi = async (id: string): Promise<Podcast> => {
 	const url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/podcasts/${id}`;
