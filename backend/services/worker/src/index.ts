@@ -134,7 +134,7 @@ class PodcastWorker {
 		await pollyClient.send(new StartSpeechSynthesisTaskCommand(params));
 
 		// Update job status in DynamoDB
-		await docClient.send(createUpdateCommand(job.userId, job.jobId, 'completed'));
+		await docClient.send(createUpdateCommand(job.userId, job.jobId, 'completed', title));
 		console.log('Job completed:', job.jobId);
 	}
 
@@ -157,19 +157,21 @@ worker.start().catch(console.error);
 process.on('SIGTERM', () => worker.shutdown().finally(() => process.exit(0)));
 process.on('SIGINT', () => worker.shutdown().finally(() => process.exit(0)));
 
-const createUpdateCommand = (userId: string, jobId: string, status: string) => {
+const createUpdateCommand = (userId: string, jobId: string, status: string, title?: string) => {
 	return new UpdateCommand({
 		TableName: DYNAMODB_TABLE,
 		Key: {
 			userId,
 			jobId,
 		},
-		UpdateExpression: 'SET #status = :status',
+		UpdateExpression: 'SET #status = :status, #title = :title',
 		ExpressionAttributeNames: {
 			'#status': 'status',
+			'#title': 'title',
 		},
 		ExpressionAttributeValues: {
 			':status': status,
+			':title': title,
 		},
 	});
 };
