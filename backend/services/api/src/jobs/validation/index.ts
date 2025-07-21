@@ -8,6 +8,7 @@ export const podcastSchema = z.object({
 export const jobSchema = z.object({
 	id: z.uuid(),
 	userId: z.string(),
+	title: z.string().default('pending').optional(),
 	url: z.string(),
 	status: z.enum(jobStatus),
 	createdAt: z.string().default(new Date().toISOString()).optional(),

@@ -32,7 +32,6 @@ class PodcastWorker {
 	async start() {
 		try {
 			await this.redisClient.connect();
-			console.log('🔗 Connected to Redis');
 
 			// Launch a single shared browser instance for this worker
 			this.browser = await puppeteer.launch({
@@ -40,7 +39,6 @@ class PodcastWorker {
 				executablePath: process.env.CHROME_BIN || '/usr/bin/chromium',
 				args: ['--no-sandbox', '--disable-setuid-sandbox'],
 			});
-			console.log('🧭 Puppeteer browser launched');
 
 			// Start processing jobs (do not await – keep listening forever)
 			this.processJobs();
@@ -52,7 +50,7 @@ class PodcastWorker {
 	}
 
 	private async processJobs() {
-		console.log('🔄 Worker started, listening for jobs...');
+		console.log('Worker started, listening for jobs...');
 
 		await this.redisClient.xGroupCreate('podcast:jobs', 'workers', '0', { MKSTREAM: true })
 			.catch(err => { if (!err.message.includes('BUSYGROUP')) throw err; });
@@ -88,8 +86,6 @@ class PodcastWorker {
 	}
 
 	private async processJob(job: JobEvent) {
-		console.log('🎵 Processing podcast job:', job);
-
 		// Guard against malformed messages – both keys are required by DynamoDB
 		if (!job.userId || !job.jobId) {
 			throw new Error(`Malformed job event – missing userId or jobId: ${JSON.stringify(job)}`);
@@ -106,7 +102,7 @@ class PodcastWorker {
 		const html = await page.content();
 		await page.close();
 
-		// 1. Fetch with Puppeteer and clean HTML (Readability)
+		// Fetch with Puppeteer and clean HTML (Readability)
 		const doc = new JSDOM(html, { url: job.url });
 		const reader = new Readability(doc.window.document);
 		const article = reader.parse();
@@ -118,13 +114,13 @@ class PodcastWorker {
 			throw new Error('No content found');
 		}
 
-		// 2. Chunk text for TTS
+		// Chunk text for TTS
 		const chunks = [
 			title,
 			...content.split('\n').map(line => line.trim()).filter(line => line.length > 0),
 		].filter(chunk => chunk !== undefined);
 
-		// 3. Generate audio with AWS Polly
+		// Generate audio with AWS Polly
 		const params: StartSpeechSynthesisTaskCommandInput = {
 			Text: chunks.join('\n'),
 			OutputFormat: OutputFormat.MP3,
@@ -135,13 +131,11 @@ class PodcastWorker {
 			OutputS3KeyPrefix: `${job.userId}/${job.jobId}.mp3`,
 		};
 
-		console.log('🔍 Sending Polly command', params);
 		await pollyClient.send(new StartSpeechSynthesisTaskCommand(params));
 
-		// 6. Update job status in DynamoDB
-		await docClient.send(createUpdateCommand(job.userId, job.jobId, 'completed'));
-
-		console.log('✅ Job completed:', job.jobId);
+		// Update job status in DynamoDB
+		await docClient.send(createUpdateCommand(job.userId, job.jobId, 'completed', title));
+		console.log('Job completed:', job.jobId);
 	}
 
 	/** Gracefully close shared resources when the process exits */
@@ -163,19 +157,21 @@ worker.start().catch(console.error);
 process.on('SIGTERM', () => worker.shutdown().finally(() => process.exit(0)));
 process.on('SIGINT', () => worker.shutdown().finally(() => process.exit(0)));
 
-const createUpdateCommand = (userId: string, jobId: string, status: string) => {
+const createUpdateCommand = (userId: string, jobId: string, status: string, title?: string) => {
 	return new UpdateCommand({
 		TableName: DYNAMODB_TABLE,
 		Key: {
 			userId,
 			jobId,
 		},
-		UpdateExpression: 'SET #status = :status',
+		UpdateExpression: 'SET #status = :status, #title = :title',
 		ExpressionAttributeNames: {
 			'#status': 'status',
+			'#title': 'title',
 		},
 		ExpressionAttributeValues: {
 			':status': status,
+			':title': title,
 		},
 	});
 };

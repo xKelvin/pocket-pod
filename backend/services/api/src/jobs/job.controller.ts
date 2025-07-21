@@ -76,6 +76,9 @@ export const deleteJob = async (req: Request, res: Response, next: NextFunction)
 
 		const result = await docClient.send(command);
 
+		// TODO: Delete the job from the Redis stream
+		// TODO: Delete the produced audio from S3
+
 		if (!result.Attributes) {
 			res.status(404).json({ message: 'Job not found' });
 			return;
