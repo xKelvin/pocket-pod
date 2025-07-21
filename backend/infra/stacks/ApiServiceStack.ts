@@ -21,7 +21,7 @@ import { Construct } from 'constructs';
 
 export interface ApiServiceStackProps extends StackProps {
 	cluster: ICluster;
-	jobsTable: ITable;
+	podcastsTable: ITable;
 	redisCluster: CfnReplicationGroup;
 	taskExecutionRole: IRole;
 	apiTargetGroup: IApplicationTargetGroup;
@@ -32,7 +32,7 @@ export class ApiServiceStack extends Stack {
 	constructor(scope: Construct, props: ApiServiceStackProps) {
 		super(scope, 'ApiServiceStack', props);
 
-		const { cluster, jobsTable, redisCluster, taskExecutionRole, apiTargetGroup, apiLogGroup } = props;
+		const { cluster, podcastsTable, redisCluster, taskExecutionRole, apiTargetGroup, apiLogGroup } = props;
 
 		// Create task role for API service
 		const apiTaskRole = new Role(this, 'ApiTaskRole', {
@@ -40,7 +40,7 @@ export class ApiServiceStack extends Stack {
 		});
 
 		// Grant API service permissions to DynamoDB
-		jobsTable.grantReadWriteData(apiTaskRole);
+		podcastsTable.grantReadWriteData(apiTaskRole);
 
 		// Create API task definition
 		const apiTaskDefinition = new FargateTaskDefinition(this, 'ApiTaskDefinition', {
@@ -67,7 +67,7 @@ export class ApiServiceStack extends Stack {
 			environment: {
 				NODE_ENV: 'production',
 				PORT: '3000',
-				DYNAMODB_TABLE: jobsTable.tableName,
+				DYNAMODB_TABLE: podcastsTable.tableName,
 				REDIS_URL: `redis://${redisCluster.attrPrimaryEndPointAddress}:6379`,
 			},
 		});
