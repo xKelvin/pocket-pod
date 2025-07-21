@@ -1,9 +1,10 @@
 import type { Request, Response, NextFunction } from 'express';
 import { podcastsSchema, podcastSchema, Podcast } from './validation/index.js';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DeleteCommand, DynamoDBDocumentClient, PutCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
+import { DeleteCommand, DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import redisClient from '../lib/client.redis.js';
-import { S3Client, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, DeleteObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 const DYNAMODB_TABLE = process.env.DYNAMODB_TABLE || 'pocket-pod-podcasts';
 const docClient = DynamoDBDocumentClient.from(new DynamoDBClient({ region: 'ap-northeast-1' }));
@@ -24,6 +25,44 @@ export const getPodcasts = async (_req: Request, res: Response) => {
 	const podcasts = podcastsSchema.parse(result.Items);
 
 	res.json(podcasts);
+};
+
+export const getPodcastAudioLink = async (req: Request, res: Response, next: NextFunction) => {
+	try {
+		const { id } = req.params;
+
+		// Get the job from the DynamoDB table
+		const command = new GetCommand({
+			TableName: DYNAMODB_TABLE,
+			Key: {
+				userId: '123',
+				id,
+			},
+		});
+
+		const result = await docClient.send(command);
+
+		if (!result.Item) {
+			res.status(404).json({ message: 'Job not found' });
+			return;
+		}
+
+		const audioKey = result.Item?.audioKey;
+
+		if (audioKey) {
+			const command = new GetObjectCommand({
+				Bucket: process.env.S3_BUCKET!,
+				Key: audioKey,
+			});
+
+			// Get the presigned url
+			const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn: 60 });
+			res.json({ podcastUrl: presignedUrl });
+			return;
+		}
+	} catch (error) {
+		next(error);
+	}
 };
 
 export const createPodcast = async (req: Request, res: Response, next: NextFunction) => {
@@ -74,13 +113,12 @@ export const deletePodcast = async (req: Request, res: Response, next: NextFunct
 		});
 
 		const result = await docClient.send(command);
-		const audioUri = result.Attributes?.audioUri;
+		const audioKey = result.Attributes?.audioKey;
 
-		if (audioUri) {
-			const key = new URL(audioUri).pathname.slice(1);
+		if (audioKey) {
 			await s3Client.send(new DeleteObjectCommand({
 				Bucket: process.env.S3_BUCKET!,
-				Key: key,
+				Key: audioKey,
 			}));
 		}
 
