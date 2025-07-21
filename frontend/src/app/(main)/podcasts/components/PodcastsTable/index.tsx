@@ -10,15 +10,43 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import CreatePodcastDialog from "../CreatePodcastDialog";
 import { Button } from "@/components/ui/button";
 import { RefreshCcw } from "lucide-react";
+import { ConfirmationDialog } from "@/components/composites/ConfirmationDialog";
+import { deletePodcastAction } from "../../actions";
+import { toast } from "sonner";
 
 export const PodcastsTable = ({ podcasts }: { podcasts: Promise<Podcast[]> }) => {
 	const [data, setData] = useState(use(podcasts));
 	const [sorting, setSorting] = useState<SortingState>([]);
 	const [isCreatePodcastDialogOpen, setIsCreatePodcastDialogOpen] = useState(false);
+	const [isDeletePodcastDialogOpen, setIsDeletePodcastDialogOpen] = useState(false);
+	const [podcastToDelete, setPodcastToDelete] = useState<Podcast | null>(null);
+
+	const handleDelete = (podcast: Podcast) => {
+		setPodcastToDelete(podcast);
+		setIsDeletePodcastDialogOpen(true);
+	};
+
+	const confirmDeletePodcast = async () => {
+		if (!podcastToDelete) return;
+
+		try {
+			setData((prev) => prev.filter((podcast) => podcast.id !== podcast.id));
+			toast.success('ポッドキャストを削除しました');
+			await deletePodcastAction(podcastToDelete.id);
+		} catch (error) {
+			console.error('Failed to delete podcast:', error);
+			toast.error('ポッドキャストの削除に失敗しました');
+			// Revert optimistic update on failure
+			setData((prev) => [...prev, podcastToDelete]);
+		} finally {
+			setIsDeletePodcastDialogOpen(false);
+			setPodcastToDelete(null);
+		}
+	};
 
 	const table = useReactTable({
 		data,
-		columns: podcastsColumns,
+		columns: podcastsColumns(handleDelete),
 		state: { sorting },
 		onSortingChange: setSorting,
 		getCoreRowModel: getCoreRowModel(),
@@ -68,7 +96,7 @@ export const PodcastsTable = ({ podcasts }: { podcasts: Promise<Podcast[]> }) =>
 						table.getRowModel().rows.map((row) => (
 							<TableRow key={row.id}>
 								{row.getVisibleCells().map((cell) => (
-									<TableCell key={cell.id} className="px-4 py-2">
+									<TableCell key={cell.id} colSpan={data.length + 2} className="px-4 py-2">
 										{flexRender(cell.column.columnDef.cell, cell.getContext())}
 									</TableCell>
 								))}
@@ -76,7 +104,7 @@ export const PodcastsTable = ({ podcasts }: { podcasts: Promise<Podcast[]> }) =>
 						))
 					) : (
 						<TableRow>
-							<TableCell colSpan={podcastsColumns.length} className="h-24 text-center">
+							<TableCell colSpan={table.getHeaderGroups().length + 4} className="h-24 text-center">
 								ポッドキャストはありません
 							</TableCell>
 						</TableRow>
@@ -87,6 +115,18 @@ export const PodcastsTable = ({ podcasts }: { podcasts: Promise<Podcast[]> }) =>
 			{/* Pagination & count */}
 			<RichTableFooter table={table} counterWord="件" />
 			<CreatePodcastDialog isOpen={isCreatePodcastDialogOpen} onOpenChange={setIsCreatePodcastDialogOpen} onSuccess={handleCreatePodcastSuccess} />
+
+			{podcastToDelete && (
+				<ConfirmationDialog
+					title="ポッドキャストを削除しますか？"
+					description={`本当に「${podcastToDelete.title}」を削除しますか？`}
+					confirmText="削除"
+					showDialog={isDeletePodcastDialogOpen}
+					setShowDialog={setIsDeletePodcastDialogOpen}
+					onConfirm={confirmDeletePodcast}
+					confirmButtonVariant="destructive"
+				/>
+			)}
 		</>
 	);
 };
