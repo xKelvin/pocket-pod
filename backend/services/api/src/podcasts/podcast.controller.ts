@@ -2,7 +2,6 @@ import type { Request, Response, NextFunction } from 'express';
 import { podcastsSchema, podcastSchema, Podcast } from './validation/index.js';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DeleteCommand, DynamoDBDocumentClient, PutCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
-import { v4 as uuidv4 } from 'uuid';
 import redisClient from '../lib/client.redis.js';
 
 const DYNAMODB_TABLE = process.env.DYNAMODB_TABLE || 'pocket-pod-podcasts';
@@ -27,13 +26,11 @@ export const getPodcasts = async (_req: Request, res: Response) => {
 
 export const createPodcast = async (req: Request, res: Response, next: NextFunction) => {
 	try {
-		const { url } = podcastSchema.parse(req.body);
-		const podcastId = uuidv4();
+		const { url, id } = podcastSchema.parse(req.body);
 
 		// Add the request to the DynamoDB table
 		const podcastItem: Podcast = {
-			id: podcastId,
-			userId: '123',
+			id,
 			url,
 			status: 'pending',
 		};
@@ -42,6 +39,7 @@ export const createPodcast = async (req: Request, res: Response, next: NextFunct
 			TableName: DYNAMODB_TABLE,
 			Item: {
 				podcastId: podcastItem.id,
+				userId: '123',
 				...podcastItem,
 			},
 		});
@@ -49,13 +47,13 @@ export const createPodcast = async (req: Request, res: Response, next: NextFunct
 		await docClient.send(command);
 
 		// TODO: Create a proper job event type.
-		await redisClient.xAdd('podcast:podcasts', '*', {
-			podcastId,
+		await redisClient.xAdd('podcast:jobs', '*', {
+			podcastId: id,
 			userId: '123',
 			url,
 		});
 
-		res.status(201).json({ podcastId });
+		res.status(201).json({ ...podcastItem });
 	} catch (error) {
 		next(error);
 	}

@@ -5,3 +5,5 @@ export type Podcast = {
 	status: string;
 	createdAt: Date;
 };
+
+export type CreatePodcast = Pick<Podcast, 'id' | 'url'>;

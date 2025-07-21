@@ -60,7 +60,7 @@ class PodcastWorker {
 			const resp = await this.redisClient.xReadGroup(
 				'workers',
 				process.env.HOSTNAME!,
-				// Deliver all messages from the stream with key 'podcast:podcasts'
+				// Deliver all messages from the stream with key 'podcast:jobs'
 				// that are not yet delivered to any consumer,
 				// and wait for up to 5 seconds for a message to be available
 				{ key: REDIS_STREAM_KEY, id: '>' },
@@ -92,7 +92,7 @@ class PodcastWorker {
 			throw new Error(`Malformed podcast event – missing userId or podcastId: ${JSON.stringify(podcast)}`);
 		}
 
-		await docClient.send(createUpdateCommand(podcast.userId, podcast.podcastId, 'processing'));
+		await docClient.send(createUpdateCommand(podcast.userId, podcast.podcastId, 'processing', 'processing'));
 
 		if (!this.browser) {
 			throw new Error('Browser not initialized');
@@ -112,7 +112,7 @@ class PodcastWorker {
 		const content = article?.textContent;
 
 		if (!content || !title) {
-			throw new Error('No content found');
+			throw new Error('Could not parse article.');
 		}
 
 		// Chunk text for TTS
@@ -129,7 +129,7 @@ class PodcastWorker {
 			Engine: Engine.NEURAL,
 			LanguageCode: LanguageCode.en_US,
 			OutputS3BucketName: process.env.S3_BUCKET!,
-			OutputS3KeyPrefix: `${podcast.userId}/${podcast.podcastId}.mp3`,
+			OutputS3KeyPrefix: `${podcast.userId}`,
 		};
 
 		await pollyClient.send(new StartSpeechSynthesisTaskCommand(params));
@@ -158,7 +158,7 @@ worker.start().catch(console.error);
 process.on('SIGTERM', () => worker.shutdown().finally(() => process.exit(0)));
 process.on('SIGINT', () => worker.shutdown().finally(() => process.exit(0)));
 
-const createUpdateCommand = (userId: string, podcastId: string, status: string, title?: string) => {
+const createUpdateCommand = (userId: string, podcastId: string, status: string, title: string) => {
 	return new UpdateCommand({
 		TableName: DYNAMODB_TABLE,
 		Key: {

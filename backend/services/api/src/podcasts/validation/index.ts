@@ -3,10 +3,9 @@ import { podcastStatus } from '../podcast.types.js';
 
 export const podcastSchema = z.object({
 	id: z.uuid(),
-	userId: z.string(),
 	title: z.string().default('pending...').optional(),
 	url: z.string(),
-	status: z.enum(podcastStatus),
+	status: z.enum(podcastStatus).default('pending').optional(),
 	createdAt: z.string().default(new Date().toISOString()).optional(),
 });
 
