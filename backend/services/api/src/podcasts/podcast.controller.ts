@@ -3,9 +3,11 @@ import { podcastsSchema, podcastSchema, Podcast } from './validation/index.js';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DeleteCommand, DynamoDBDocumentClient, PutCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import redisClient from '../lib/client.redis.js';
+import { S3Client, DeleteObjectCommand } from '@aws-sdk/client-s3';
 
 const DYNAMODB_TABLE = process.env.DYNAMODB_TABLE || 'pocket-pod-podcasts';
 const docClient = DynamoDBDocumentClient.from(new DynamoDBClient({ region: 'ap-northeast-1' }));
+const s3Client = new S3Client({ region: 'ap-northeast-1' });
 
 export const getPodcasts = async (_req: Request, res: Response) => {
 	// Retrieve all jobs from the DynamoDB table, where the partition key is the user id
@@ -38,7 +40,6 @@ export const createPodcast = async (req: Request, res: Response, next: NextFunct
 		const command = new PutCommand({
 			TableName: DYNAMODB_TABLE,
 			Item: {
-				podcastId: podcastItem.id,
 				userId: '123',
 				...podcastItem,
 			},
@@ -46,9 +47,8 @@ export const createPodcast = async (req: Request, res: Response, next: NextFunct
 
 		await docClient.send(command);
 
-		// TODO: Create a proper job event type.
 		await redisClient.xAdd('podcast:jobs', '*', {
-			podcastId: id,
+			id,
 			userId: '123',
 			url,
 		});
@@ -68,15 +68,21 @@ export const deletePodcast = async (req: Request, res: Response, next: NextFunct
 			TableName: DYNAMODB_TABLE,
 			Key: {
 				userId: '123',
-				podcastId: id,
+				id,
 			},
 			ReturnValues: 'ALL_OLD',
 		});
 
 		const result = await docClient.send(command);
+		const audioUri = result.Attributes?.audioUri;
 
-		// TODO: Delete the job from the Redis stream
-		// TODO: Delete the produced audio from S3
+		if (audioUri) {
+			const key = new URL(audioUri).pathname.slice(1);
+			await s3Client.send(new DeleteObjectCommand({
+				Bucket: process.env.S3_BUCKET!,
+				Key: key,
+			}));
+		}
 
 		if (!result.Attributes) {
 			res.status(404).json({ message: 'Job not found' });
