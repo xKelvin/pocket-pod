@@ -4,15 +4,15 @@ import { Bucket } from 'aws-cdk-lib/aws-s3';
 import { Construct } from 'constructs';
 
 export class StorageStack extends Stack {
-	public readonly episodesBucket: Bucket;
-	public readonly jobsTable: Table;
+	public readonly podcastsBucket: Bucket;
+	public readonly podcastsTable: Table;
 
 	constructor(scope: Construct, props?: StackProps) {
 		super(scope, 'StorageStack', props);
 
 		// Create S3 bucket for storing podcast episodes
-		this.episodesBucket = new Bucket(this, 'EpisodesBucket', {
-			bucketName: `pocket-pod-episodes-${this.account}-${this.region}`,
+		this.podcastsBucket = new Bucket(this, 'PodcastsBucket', {
+			bucketName: `pocket-pod-podcasts-${this.account}-${this.region}`,
 			versioned: false,
 			publicReadAccess: false,
 			removalPolicy: RemovalPolicy.DESTROY, // For development only
@@ -20,16 +20,16 @@ export class StorageStack extends Stack {
 		});
 
 		// Create DynamoDB table for job tracking
-		this.jobsTable = new Table(this, 'JobsTable', {
-			tableName: 'pocket-pod-jobs',
+		this.podcastsTable = new Table(this, 'PodcastsTable', {
+			tableName: 'pocket-pod-podcasts',
 			partitionKey: { name: 'userId', type: AttributeType.STRING },
-			sortKey: { name: 'jobId', type: AttributeType.STRING },
+			sortKey: { name: 'podcastId', type: AttributeType.STRING },
 			billingMode: BillingMode.PAY_PER_REQUEST,
 			removalPolicy: RemovalPolicy.DESTROY, // For development only
 		});
 
 		// Add GSI for querying jobs by status
-		this.jobsTable.addGlobalSecondaryIndex({
+		this.podcastsTable.addGlobalSecondaryIndex({
 			indexName: 'StatusIndex',
 			partitionKey: { name: 'status', type: AttributeType.STRING },
 			sortKey: { name: 'createdAt', type: AttributeType.STRING },

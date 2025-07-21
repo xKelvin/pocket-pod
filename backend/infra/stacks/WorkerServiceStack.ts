@@ -18,8 +18,8 @@ import { Construct } from 'constructs';
 
 export interface WorkerServiceStackProps extends StackProps {
 	cluster: ICluster;
-	jobsTable: ITable;
-	episodesBucket: IBucket;
+	podcastsTable: ITable;
+	podcastsBucket: IBucket;
 	redisCluster: CfnReplicationGroup;
 	taskExecutionRole: IRole;
 	workerLogGroup: ILogGroup;
@@ -31,8 +31,8 @@ export class WorkerServiceStack extends Stack {
 
 		const {
 			cluster,
-			jobsTable,
-			episodesBucket,
+			podcastsTable,
+			podcastsBucket,
 			redisCluster,
 			taskExecutionRole,
 			workerLogGroup,
@@ -44,8 +44,8 @@ export class WorkerServiceStack extends Stack {
 		});
 
 		// Grant worker service permissions
-		jobsTable.grantReadWriteData(workerTaskRole);
-		episodesBucket.grantReadWrite(workerTaskRole);
+		podcastsTable.grantReadWriteData(workerTaskRole);
+		podcastsBucket.grantReadWrite(workerTaskRole);
 
 		// Grant Polly permissions for TTS
 		workerTaskRole.addToPrincipalPolicy(
@@ -83,8 +83,8 @@ export class WorkerServiceStack extends Stack {
 			}),
 			environment: {
 				NODE_ENV: 'production',
-				DYNAMODB_TABLE: jobsTable.tableName,
-				S3_BUCKET: episodesBucket.bucketName,
+				DYNAMODB_TABLE: podcastsTable.tableName,
+				S3_BUCKET: podcastsBucket.bucketName,
 				REDIS_URL: `redis://${redisCluster.attrPrimaryEndPointAddress}:6379`,
 				AWS_REGION: this.region,
 			},

@@ -2,10 +2,10 @@
 import { Podcast } from '@/types/podcasts';
 
 /**
- * Fetch all podcasts - GET /jobs
+ * Fetch all podcasts - GET /podcasts
  */
 export const fetchAllPodcastsApi = async (): Promise<Podcast[]> => {
-	const url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/jobs`;
+	const url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/podcasts`;
 
 	try {
 		const res = await fetch(url, {

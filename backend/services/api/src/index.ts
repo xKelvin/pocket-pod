@@ -1,15 +1,15 @@
 import express from 'express';
-import jobRoutes from './jobs/job.routes.js';
 import defaultRoutes from './defaults/default.routes.js';
 import { errorHandler } from './middlewares/error.handler.js';
 import redisClient from './lib/client.redis.js';
+import podcastRoutes from './podcasts/podcast.routes.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 
-app.use('/jobs', jobRoutes);
+app.use('/podcasts', podcastRoutes);
 app.use('/', defaultRoutes);
 
 app.use(errorHandler);

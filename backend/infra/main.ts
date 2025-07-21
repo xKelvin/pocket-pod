@@ -47,7 +47,7 @@ const lbStack = new LoadBalancerStack(app, {
 new ApiServiceStack(app, {
 	...defaultProps,
 	cluster: clusterStack.cluster,
-	jobsTable: storageStack.jobsTable,
+	podcastsTable: storageStack.podcastsTable,
 	redisCluster: cacheStack.redisCluster,
 	taskExecutionRole: clusterStack.taskExecutionRole,
 	apiTargetGroup: lbStack.apiTargetGroup,
@@ -58,8 +58,8 @@ new ApiServiceStack(app, {
 new WorkerServiceStack(app, {
 	...defaultProps,
 	cluster: clusterStack.cluster,
-	jobsTable: storageStack.jobsTable,
-	episodesBucket: storageStack.episodesBucket,
+	podcastsTable: storageStack.podcastsTable,
+	podcastsBucket: storageStack.podcastsBucket,
 	redisCluster: cacheStack.redisCluster,
 	taskExecutionRole: clusterStack.taskExecutionRole,
 	workerLogGroup: clusterStack.workerLogGroup,
