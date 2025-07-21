@@ -7,10 +7,14 @@ import { use, useState } from "react";
 import { podcastsColumns } from "./columns";
 import RichTableFooter from "@/components/composites/RichTableFooter";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import CreatePodcastDialog from "../CreatePodcastDialog";
+import { Button } from "@/components/ui/button";
+import { RefreshCcw } from "lucide-react";
 
 export const PodcastsTable = ({ podcasts }: { podcasts: Promise<Podcast[]> }) => {
-	const data = use(podcasts);
+	const [data, setData] = useState(use(podcasts));
 	const [sorting, setSorting] = useState<SortingState>([]);
+	const [isCreatePodcastDialogOpen, setIsCreatePodcastDialogOpen] = useState(false);
 
 	const table = useReactTable({
 		data,
@@ -22,8 +26,26 @@ export const PodcastsTable = ({ podcasts }: { podcasts: Promise<Podcast[]> }) =>
 		getSortedRowModel: getSortedRowModel(),
 	});
 
+	const handleCreatePodcastSuccess = (podcast: Podcast) => {
+		setIsCreatePodcastDialogOpen(false);
+		setData([...data, podcast]);
+	};
+
 	return (
 		<>
+			<div className="flex justify-between items-center mb-4"	>
+				<div className="flex">
+					<Button variant="outline" onClick={() => console.log('logout')}>ログアウト</Button>
+				</div>
+				<div className="flex gap-x-2">
+					<Button variant="outline" onClick={() => {
+						window.location.reload();
+					}}>
+						<RefreshCcw className="h-4 w-4" />
+					</Button>
+					<Button onClick={() => setIsCreatePodcastDialogOpen(true)}>ポッドキャストを追加</Button>
+				</div>
+			</div>
 			<Table>
 				{/* Header */}
 				<TableHeader>
@@ -64,6 +86,7 @@ export const PodcastsTable = ({ podcasts }: { podcasts: Promise<Podcast[]> }) =>
 
 			{/* Pagination & count */}
 			<RichTableFooter table={table} counterWord="件" />
+			<CreatePodcastDialog isOpen={isCreatePodcastDialogOpen} onOpenChange={setIsCreatePodcastDialogOpen} onSuccess={handleCreatePodcastSuccess} />
 		</>
 	);
 };
