@@ -74,6 +74,7 @@ export const createPodcast = async (req: Request, res: Response, next: NextFunct
 			id,
 			url,
 			status: 'pending',
+			createdAt: new Date().toISOString(),
 		};
 
 		const command = new PutCommand({

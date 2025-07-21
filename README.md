@@ -23,6 +23,9 @@ flowchart TD
     E --> G["Download podcast file"]
 ```
 
+## Demo (2023/07/21)
+https://github.com/user-attachments/assets/c84ac239-a585-448c-b2ed-7daafc9c536f
+
 ## Architectural Overview
 
 ![Pocket Pod architecture](backend/docs/infra.png)
@@ -39,18 +42,18 @@ The diagram shows the complete end-to-end flow from an authenticated request, to
 - [x] Containerised **API** & **Worker** services
 - [x] **Redis Streams** implementation for job dispatching
 - [x] Job management APIs with persistence in **DynamoDB**
+- [x] Workers push status updates to **DynamoDB**
+- [x] Workers scrape articles, generate audio with **AWS Polly**, and upload to **S3**
 
 **To Do** 🔜
 
 - [ ] GitHub OAuth token verification infrastructure
 - [ ] Auto-scaling based on custom **CloudWatch** metrics
-- [ ] Workers push status updates to **DynamoDB**
-- [ ] Workers scrape articles, generate audio with **AWS Polly**, and upload to **S3**
 
-### Frontend (upcoming)
+### Frontend
 
 - [ ] Authentication via **Auth.js** with GitHub provider
-- [ ] CRUD UI for managing podcasts
+- [x] CRUD UI for managing podcasts
 - [ ] Direct streaming & listening experience for generated episodes
 
 ---
